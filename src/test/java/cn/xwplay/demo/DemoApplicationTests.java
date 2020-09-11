@@ -145,4 +145,52 @@ class DemoApplicationTests {
         System.out.println("执行结果："+success);
     }
 
+    @Test
+    public void testExecMulti() {
+         String insertSql = "insert into student(id,name,birthday,user_no,class_id) values (4,'尹航','1994-06-12','2020070301',3)";
+         String createTableSql = "create table course(id bigint,name varchar(16),primary key(id))";
+         String studentSql = "select * from student";
+         Map<String,SqlQuerySet> sqlMap1 = MapUtil.newHashMap(1);
+         sqlMap1.put(insertSql,null);
+         Map<String,SqlQuerySet> sqlMap2 = MapUtil.newHashMap(1);
+         sqlMap2.put(createTableSql,null);
+         Map<String,SqlQuerySet> sqlMap3 = MapUtil.newHashMap(1);
+         SqlQuerySet sqlQuerySet3 = new SqlQuerySet();
+         sqlQuerySet3.setRsHandler(new StudentListHandler());
+         sqlMap3.put(studentSql,sqlQuerySet3);
+         List<Map<String,SqlQuerySet>> queryMap = CollUtil.newArrayList(sqlMap1,sqlMap2,sqlMap3);
+
+         SqlUtil sqlUtil = SpringUtil.getBean(SqlUtil.class);
+         List<Object> rsList = sqlUtil.execMulti(queryMap);
+         int insertCount = (int)rsList.get(0);
+         int createCount = (int)rsList.get(1);
+         List<Student> studentList= (List<Student>) rsList.get(2);
+         System.out.println(insertCount);
+         System.out.println(createCount);
+         System.out.println(studentList);
+    }
+
+    @Test
+    public void testExecMultiWithParameters() {
+        String insertSql = "insert into student(id,name,birthday,user_no,class_id) values (?,?,?,?,?)";
+        String studentSql = "select * from student where id=?";
+        Map<String,SqlQuerySet> sqlMap1 = MapUtil.newHashMap(1);
+        SqlQuerySet sqlQuerySet1 = new SqlQuerySet();
+        sqlQuerySet1.setParams(CollUtil.newArrayList(4,"尹航","1994-06-12","2020070301",3));
+        sqlMap1.put(insertSql,sqlQuerySet1);
+
+        Map<String,SqlQuerySet> sqlMap2 = MapUtil.newHashMap(1);
+        SqlQuerySet sqlQuerySet2 = new SqlQuerySet();
+        sqlQuerySet2.setRsHandler(new StudentHandler());
+        sqlQuerySet2.setParams(CollUtil.newArrayList(1));
+        sqlMap2.put(studentSql,sqlQuerySet2);
+        List<Map<String,SqlQuerySet>> queryMap = CollUtil.newArrayList(sqlMap1,sqlMap2);
+
+        SqlUtil sqlUtil = SpringUtil.getBean(SqlUtil.class);
+        List<Object> rsList = sqlUtil.execMultiWithParameters(queryMap);
+        int insertCount = (int)rsList.get(0);
+        Student student= (Student) rsList.get(1);
+        System.out.println(insertCount);
+        System.out.println(student);
+    }
 }

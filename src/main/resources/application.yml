@@ -1,9 +1,13 @@
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/test?serverTimezone=UTC
+    url: jdbc:mysql://47.96.77.27:4399/test?serverTimezone=UTC
     username: root
-    password: 123456
+    password: grant@112358
     driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:mysql://127.0.0.1:3306/test?serverTimezone=UTC
+#    username: root
+#    password: 123456
+#    driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       poolName: db-pool
       auto-commit: on

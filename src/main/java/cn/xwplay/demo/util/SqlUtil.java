@@ -1,6 +1,5 @@
 package cn.xwplay.demo.util;
 
-import cn.hutool.core.map.MapUtil;
 import cn.hutool.db.DbUtil;
 import cn.hutool.db.handler.RsHandler;
 import cn.hutool.extra.spring.SpringUtil;
@@ -50,9 +49,10 @@ public class SqlUtil {
         try {
             initConnection(true);
             connection.setReadOnly(true);
+            PreparedStatement preparedStatement;
             for (Map<String, SqlQuerySet> sqlMap : sqlList) {
                 for (String sql : sqlMap.keySet()) {
-                    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                    preparedStatement = connection.prepareStatement(sql);
                     SqlQuerySet querySet = sqlMap.get(sql);
                     List<Object> params = querySet.getParams();
                     RsHandler<?> rsHandler =querySet.getRsHandler();
@@ -106,10 +106,11 @@ public class SqlUtil {
         try {
             int[] rowsArray = new int[sqlList.size()];
             initConnection(false);
+            PreparedStatement preparedStatement;
             for (int i = 0; i < sqlList.size(); i++) {
                 Map<String, List<Object>> sqlMap = sqlList.get(i);
                 for (String sql : sqlMap.keySet()) {
-                    PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                    preparedStatement = connection.prepareStatement(sql);
                     List<Object> params = sqlMap.get(sql);
                     log.debug("【execMultiManipulationWithParameters：{},执行参数：{}】",sql,params);
                     for (int j = 0; j < params.size(); j++) {
@@ -182,14 +183,51 @@ public class SqlUtil {
         return isSuccess;
     }
 
-    public List<Object> execMultiWithParameters(List<Map<String,List<Object>>> sqlList) {
+    public List<Object> execMulti(List<Map<String,SqlQuerySet>> sqlList) {
         List<Object> objectList = new ArrayList<>(sqlList.size());
         try {
             initConnection(false);
-            for (Map<String, List<Object>> sqlMap : sqlList) {
+            Statement statement = connection.createStatement();
+            for (Map<String,SqlQuerySet> sqlMap : sqlList) {
                 for (String sql : sqlMap.keySet()) {
-                    PreparedStatement preparedStatement = connection.prepareStatement(sql);
-                    List<Object> params = sqlMap.get(sql);
+                    log.debug("【execMulti：{}】",sql);
+                    boolean flag = statement.execute(sql);
+                    // dql
+                    if (flag) {
+                        RsHandler<?> rsHandler = sqlMap.get(sql).getRsHandler();
+                        objectList.add(rsHandler.handle(statement.getResultSet()));
+                    } else {
+                        int updateCount = statement.getUpdateCount();
+                        // 大于0为dml语句，等于0为ddl语句
+                        objectList.add(Math.max(updateCount, 0));
+                    }
+                }
+            }
+            log.debug("【execMultiWithParameters：执行结果：{}】",objectList);
+            connection.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try {
+                connection.rollback();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        } finally {
+            DbUtil.close(connection);
+        }
+        return objectList;
+    }
+
+    public List<Object> execMultiWithParameters(List<Map<String,SqlQuerySet>> sqlList) {
+        List<Object> objectList = new ArrayList<>(sqlList.size());
+        try {
+            initConnection(false);
+            PreparedStatement preparedStatement;
+            for (Map<String, SqlQuerySet> sqlMap : sqlList) {
+                for (String sql : sqlMap.keySet()) {
+                    preparedStatement = connection.prepareStatement(sql);
+                    SqlQuerySet sqlQuerySet = sqlMap.get(sql);
+                    List<Object> params = sqlQuerySet.getParams();
                     log.debug("【execMultiWithParameters：{}】",sql);
                     for (int j = 0; j < params.size(); j++) {
                         setSqlParam(params.get(j), preparedStatement, j);
@@ -197,8 +235,8 @@ public class SqlUtil {
                     boolean flag = preparedStatement.execute();
                     // dql
                     if (flag) {
-                        objectList.add(preparedStatement.getResultSet());
-                        // ddl dml
+                        RsHandler<?> rsHandler = sqlMap.get(sql).getRsHandler();
+                        objectList.add(rsHandler.handle(preparedStatement.getResultSet()));
                     } else {
                         int updateCount = preparedStatement.getUpdateCount();
                         // 大于0为dml语句，等于0为ddl语句
