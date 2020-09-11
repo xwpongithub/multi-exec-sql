@@ -2,9 +2,7 @@ package cn.xwplay.demo.util;
 
 import cn.hutool.db.DbUtil;
 import cn.hutool.db.handler.RsHandler;
-import cn.hutool.extra.spring.SpringUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
@@ -14,11 +12,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@Component
 @Slf4j
 public class SqlUtil {
 
+    private DataSource dataSource;
     private Connection connection;
+
+    public SqlUtil(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     private static final int EXEC_BATCH_SUCCESS_INFO = -2;
 
@@ -260,7 +262,7 @@ public class SqlUtil {
     }
 
     private void initConnection(boolean autoCommit) throws SQLException {
-      connection = SpringUtil.getBean(DataSource.class).getConnection();
+      connection = dataSource.getConnection();
       connection.setAutoCommit(autoCommit);
     }
 

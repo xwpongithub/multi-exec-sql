@@ -5,28 +5,34 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.db.handler.NumberHandler;
 import cn.hutool.db.handler.RsHandler;
-import cn.hutool.extra.spring.SpringUtil;
 import cn.xwplay.demo.handler.ClassesHandler;
 import cn.xwplay.demo.handler.ClassesListHandler;
 import cn.xwplay.demo.handler.StudentHandler;
 import cn.xwplay.demo.handler.StudentListHandler;
 import cn.xwplay.demo.pojo.Classes;
 import cn.xwplay.demo.pojo.Student;
+import cn.xwplay.demo.util.MultiSqlFactory;
 import cn.xwplay.demo.util.SqlQuerySet;
 import cn.xwplay.demo.util.SqlUtil;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-@SpringBootTest
-class DemoApplicationTests {
+public class TestCases {
 
+    private SqlUtil sqlUtil;
+
+    @Before
+    public void before() {
+        sqlUtil = MultiSqlFactory.DB.getInstance();
+    }
+
+    // 执行多个不同的insert或update语句（参数不编译）
     @Test
     public void testExecMultiManipulation() {
-        SqlUtil sqlUtil = SpringUtil.getBean(SqlUtil.class);
         List<String> sqlList = CollUtil.newArrayList();
         sqlList.add("insert into classes(id,name,class_no) values (3,'文科1班','W20200701')");
         sqlList.add("insert into student(id,name,birthday,user_no,class_id) values (4,'尹航','1994-06-12','2020070301',3)");
@@ -38,6 +44,7 @@ class DemoApplicationTests {
         System.out.println("每条sql语句影响的行数："+Arrays.toString(rowArray));
     }
 
+    // 执行多个不同的insert或update语句（参数编译）
     @Test
     public void testExecMultiManipulationWithParameters() {
         Map<String,List<Object>> sql1 = MapUtil.newHashMap(1);
@@ -49,7 +56,6 @@ class DemoApplicationTests {
         Map<String,List<Object>> sql4 = MapUtil.newHashMap(1);
         sql4.put("insert into student(id,name,birthday,user_no,class_id) values (?,?,?,?,?)",CollUtil.newArrayList(5,"尹航", "1992-09-16","2020070302",3));
         List<Map<String,List<Object>>> sqlList = CollUtil.newArrayList(sql1,sql2,sql3,sql4);
-        SqlUtil sqlUtil = SpringUtil.getBean(SqlUtil.class);
         List<Object> rs = sqlUtil.execMultiManipulationWithParameters(sqlList);
         Integer count = (Integer)rs.get(0);
         int[] rowArray = (int[])rs.get(1);
@@ -57,6 +63,7 @@ class DemoApplicationTests {
         System.out.println("每条sql语句影响的行数："+Arrays.toString(rowArray));
     }
 
+    // 执行多个select语句（参数不编译）
     @Test
     public void testExecMultiQuery() {
         String sql1 = "select * from classes";
@@ -79,7 +86,6 @@ class DemoApplicationTests {
         Map<String, RsHandler<?>> sqlMap5 = MapUtil.newHashMap(1);
         sqlMap5.put(sql5,new ClassesHandler());
 
-        SqlUtil sqlUtil = SpringUtil.getBean(SqlUtil.class);
         List<Map<String, RsHandler<?>>> sqlList = CollUtil.newArrayList(sqlMap1,sqlMap2,sqlMap3,sqlMap4,sqlMap5);
         List<Object> resultList = sqlUtil.execMultiQuery(sqlList);
 
@@ -95,6 +101,7 @@ class DemoApplicationTests {
         System.out.println(classes);
     }
 
+    // 执行多个select语句（参数编译）
     @Test
     public void testExecMultiQueryWithParameters() {
         String sql1 = "select id,name,birthday,user_no,class_id from student where birthday < ?";
@@ -116,7 +123,6 @@ class DemoApplicationTests {
         querySet3.setRsHandler(new NumberHandler());
         sqlMap3.put(sql3,querySet3);
         List<Map<String,SqlQuerySet>> queryMap = CollUtil.newArrayList(sqlMap1,sqlMap2,sqlMap3);
-        SqlUtil sqlUtil = SpringUtil.getBean(SqlUtil.class);
         List<Object> resultList = sqlUtil.execMultiQueryWithParameters(queryMap);
 
         List<Student> studentList = (List<Student>)resultList.get(0);
@@ -127,9 +133,9 @@ class DemoApplicationTests {
         System.out.println(number);
     }
 
+    // 批量执行同一个insert或update数据（参数编译）
     @Test
     public void testExecBatchInsert() {
-        SqlUtil sqlUtil = SpringUtil.getBean(SqlUtil.class);
         String insertSql = "insert into student (id,name,birthday,user_no,class_id) values (?,?,?,?,?)";
         List<Object> params1 = CollUtil.newArrayList(4,"尹航","1995-07-16","2020070301",3);
         List<Object> params2 = CollUtil.newArrayList(5,"谢靖宇",DateUtil.date(),"2020070302",3);
@@ -145,6 +151,7 @@ class DemoApplicationTests {
         System.out.println("执行结果："+success);
     }
 
+    // 执行多个select，insert或update语句（参数不编译）
     @Test
     public void testExecMulti() {
          String insertSql = "insert into student(id,name,birthday,user_no,class_id) values (4,'尹航','1994-06-12','2020070301',3)";
@@ -160,7 +167,6 @@ class DemoApplicationTests {
          sqlMap3.put(studentSql,sqlQuerySet3);
          List<Map<String,SqlQuerySet>> queryMap = CollUtil.newArrayList(sqlMap1,sqlMap2,sqlMap3);
 
-         SqlUtil sqlUtil = SpringUtil.getBean(SqlUtil.class);
          List<Object> rsList = sqlUtil.execMulti(queryMap);
          int insertCount = (int)rsList.get(0);
          int createCount = (int)rsList.get(1);
@@ -170,6 +176,7 @@ class DemoApplicationTests {
          System.out.println(studentList);
     }
 
+    // 执行多个select，insert或update语句（参数编译）
     @Test
     public void testExecMultiWithParameters() {
         String insertSql = "insert into student(id,name,birthday,user_no,class_id) values (?,?,?,?,?)";
@@ -186,7 +193,6 @@ class DemoApplicationTests {
         sqlMap2.put(studentSql,sqlQuerySet2);
         List<Map<String,SqlQuerySet>> queryMap = CollUtil.newArrayList(sqlMap1,sqlMap2);
 
-        SqlUtil sqlUtil = SpringUtil.getBean(SqlUtil.class);
         List<Object> rsList = sqlUtil.execMultiWithParameters(queryMap);
         int insertCount = (int)rsList.get(0);
         Student student= (Student) rsList.get(1);
